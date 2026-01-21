@@ -10,5 +10,6 @@ public class User
     public Role Role { get; set; } = null!;
 
     public ICollection<Ticket> CreatedTickets { get; set; } = new List<Ticket>();
+    public ICollection<Ticket> AssignedTickets { get; set; } = new List<Ticket>();
     public ICollection<Message> SentMessages { get; set; } = new List<Message>();
 }

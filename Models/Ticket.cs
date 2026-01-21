@@ -12,6 +12,9 @@ public class Ticket
     public User CreatedByUser { get; set; } = null!;
 
     public List<Message> Messages { get; set; } = new List<Message>();
+    
+    public int? AssignedToUserId { get; set; }
+    public User AssignedToUser { get; set; }
 }
 
 public enum TicketStatus

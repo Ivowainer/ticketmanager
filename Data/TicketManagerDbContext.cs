@@ -58,8 +58,13 @@ public class TicketManagerDbContext : DbContext
                 .HasDefaultValueSql("now()");
 
             entity.HasOne<User>(e => e.CreatedByUser)
-                .WithMany()
+                .WithMany(u => u.CreatedTickets)
                 .HasForeignKey(e => e.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne<User>(e => e.AssignedToUser)
+                .WithMany(u => u.AssignedTickets)
+                .HasForeignKey(e => e.AssignedToUserId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
@@ -80,7 +85,7 @@ public class TicketManagerDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne<User>(e => e.SenderUser)
-                .WithMany()
+                .WithMany(u => u.SentMessages)
                 .HasForeignKey(e => e.SenderUserId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
