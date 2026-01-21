@@ -1,4 +1,5 @@
 ﻿using TicketManager.DTOs.Ticket;
+using TicketManager.DTOs.Ticket.Request;
 using TicketManager.Models;
 
 namespace TicketManager.Services.Interfaces;

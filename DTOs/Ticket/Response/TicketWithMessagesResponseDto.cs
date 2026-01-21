@@ -1,6 +1,8 @@
-﻿namespace TicketManager.Models;
+﻿using TicketManager.Models;
 
-public class Ticket
+namespace TicketManager.DTOs.Ticket.Response;
+
+public class TicketWithMessagesResponseDto
 {
     public int Id { get; set; }
     public string Title { get; set; } = null!;
@@ -9,18 +11,10 @@ public class Ticket
     public DateTime CreatedAt { get; set; }
     
     public int CreatedByUserId { get; set; }
-    public User CreatedByUser { get; set; } = null!;
-
-    public List<Message> Messages { get; set; } = new List<Message>();
+    public string CreatedByUserName { get; set; } = null!;
     
     public int? AssignedToUserId { get; set; }
-    public User? AssignedToUser { get; set; }
-}
+    public string? AssignedToUserName { get; set; } = null!;
 
-public enum TicketStatus
-{
-    Open = 1,
-    InProgress = 2,
-    Resolved = 3,
-    Closed = 4
+
 }

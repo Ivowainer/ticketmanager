@@ -26,7 +26,7 @@ public class TicketManagerDbContext : DbContext
                 .HasMaxLength(100);
 
             entity.HasOne<Role>(e => e.Role)
-                .WithMany()
+                .WithMany(r => r.Users)
                 .HasForeignKey(e => e.RoleId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
@@ -52,7 +52,7 @@ public class TicketManagerDbContext : DbContext
                 .HasMaxLength(200);
             entity.Property(e => e.Description)
                 .IsRequired();
-            entity.Property(e => e.State)
+            entity.Property(e => e.Status)
                 .IsRequired();
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("now()");
