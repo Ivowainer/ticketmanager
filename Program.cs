@@ -1,6 +1,12 @@
+using Microsoft.EntityFrameworkCore;
+using TicketManager.Data;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ??
+                       throw new InvalidOperationException("Connection String 'DefaultConnection' not found");
+builder.Services.AddDbContext<TicketManagerDbContext>(options => options.UseNpgsql(connectionString));
 
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
