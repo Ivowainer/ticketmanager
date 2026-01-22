@@ -7,6 +7,7 @@ public class Ticket
     public string Description { get; set; } = null!;
     public TicketStatus Status { get; set; }
     public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
     
     public int CreatedByUserId { get; set; }
     public User CreatedByUser { get; set; } = null!;

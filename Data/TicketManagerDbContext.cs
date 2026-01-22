@@ -56,6 +56,8 @@ public class TicketManagerDbContext : DbContext
                 .IsRequired();
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("now()");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("now()");
 
             entity.HasOne<User>(e => e.CreatedByUser)
                 .WithMany(u => u.CreatedTickets)

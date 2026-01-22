@@ -5,12 +5,13 @@ namespace TicketManager.Repositories.Interfaces;
 public interface ITicketRepository
 {
        // Create
-       Task CreateAsync(Ticket ticket);
+       Task<Ticket> CreateAsync(Ticket ticket);
        
        // Get
+       Task<IEnumerable<Ticket>> GetAllAsync();
        Task<IEnumerable<Ticket>> GetByUserIdAsync(int userId);
-       Task<Ticket> GetByAssignedUserIdAsync(int assignedUserId);
-       Task<Ticket> GetUnassignedAsync();
+       Task<IEnumerable<Ticket>> GetByAssignedUserIdAsync(int assignedUserId);
+       Task<IEnumerable<Ticket>> GetUnassignedAsync();
        Task<Ticket?> GetByIdAsync(int ticketId);
        
        // Put

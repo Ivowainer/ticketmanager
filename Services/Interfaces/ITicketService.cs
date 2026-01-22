@@ -1,12 +1,20 @@
 ﻿using TicketManager.DTOs.Ticket;
 using TicketManager.DTOs.Ticket.Request;
+using TicketManager.DTOs.Ticket.Response;
 using TicketManager.Models;
 
 namespace TicketManager.Services.Interfaces;
 
 public interface ITicketService
 {
-    Task<Ticket> CreateTicketAsync(int userId, CreateTicketDto createTicketDto);
-    Task<IEnumerable<Ticket>> GetTicketsByUserAsync(int userId);
-    Task<Ticket> GetTicketByIdAsync(int userId, int ticketId);
+    Task<TicketResponseDto> CreateAsync(CreateTicketDto dto, int createdByUserId);
+
+    Task<IEnumerable<TicketResponseDto>> GetAllAsync(int userId, Role userRole);
+
+    Task<TicketResponseDto?> GetByIdAsync(int ticketId, int userId, Role userRole);
+    Task<IEnumerable<TicketResponseDto>> GetUnassignedAsync();
+
+    Task<bool> AssignAgentAsync(AssignTicketDto dto, int requestingUserId, Role userRole);
+
+    Task<bool> UpdateStatusAsync(UpdateTicketStatusDto dto, int userId, Role userRole);
 }

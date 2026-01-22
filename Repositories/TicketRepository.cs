@@ -1,4 +1,5 @@
-﻿using TicketManager.Data;
+﻿using Microsoft.EntityFrameworkCore;
+using TicketManager.Data;
 using TicketManager.Models;
 using TicketManager.Repositories.Interfaces;
 
@@ -8,58 +9,99 @@ public class TicketRepository(TicketManagerDbContext context) : ITicketRepositor
 {
     private readonly TicketManagerDbContext _context = context;
     
-    public Task CreateAsync(Ticket ticket)
+    public async Task<Ticket> CreateAsync(Ticket ticket)
     {
-        throw new NotImplementedException();
+        await _context.Tickets.AddAsync(ticket);
+        await _context.SaveChangesAsync();
+        return ticket;
+    }
+    
+    public async Task<IEnumerable<Ticket>> GetAllAsync()
+    {
+        return await _context.Tickets
+            .Include(t => t.CreatedByUser)
+            .Include(t => t.AssignedToUser)
+            .ToListAsync();
     }
 
-    public Task<IEnumerable<Ticket>> GetByUserIdAsync(int userId)
+    public async Task<IEnumerable<Ticket>> GetByUserIdAsync(int userId)
     {
-        throw new NotImplementedException();
+        return await _context.Tickets
+            .Where(t => t.CreatedByUserId == userId)
+            .Include(t => t.AssignedToUser)
+            .ToListAsync();
     }
 
-    public Task<Ticket> GetByAssignedUserIdAsync(int assignedUserId)
+    public async Task<IEnumerable<Ticket>> GetByAssignedUserIdAsync(int assignedUserId)
     {
-        throw new NotImplementedException();
+        return await _context.Tickets
+            .Where(t => t.AssignedToUserId == assignedUserId)
+            .Include(t => t.CreatedByUser)
+            .ToListAsync();
     }
 
-    public Task<Ticket> GetUnassignedAsync()
+    public async Task<IEnumerable<Ticket>> GetUnassignedAsync()
     {
-        throw new NotImplementedException();
+        return await _context.Tickets
+            .Where(t => t.AssignedToUserId == null)
+            .Include(t => t.CreatedByUser)
+            .ToListAsync();
     }
 
-    public Task<Ticket?> GetByIdAsync(int ticketId)
+    public async Task<Ticket?> GetByIdAsync(int ticketId)
     {
-        throw new NotImplementedException();
+        return await _context.Tickets
+            .Where(t => t.Id == ticketId)
+            .Include(t => t.AssignedToUser)
+            .Include(t => t.CreatedByUser)
+            .FirstOrDefaultAsync();
     }
 
-    public Task<Ticket> UpdateAsync(Ticket ticket)
+    public async Task<Ticket> UpdateAsync(Ticket ticket)
     {
-        throw new NotImplementedException();
+        _context.Tickets.Update(ticket);
+        await _context.SaveChangesAsync();
+        return ticket;
     }
 
-    public Task<bool> AssignAgentAsync(int ticketId, int agentId)
+    public async Task<bool> AssignAgentAsync(int ticketId, int agentId)
     {
-        throw new NotImplementedException();
+        var ticket = await _context.Tickets.FindAsync(ticketId);
+        if (ticket == null) return false;
+
+        ticket.AssignedToUserId = agentId;
+        ticket.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+        return true;
     }
 
-    public Task<bool> UpdateStatusAsync(int ticketId, TicketStatus status)
+    public async Task<bool> UpdateStatusAsync(int ticketId, TicketStatus status)
     {
-        throw new NotImplementedException();
+        var ticket = await _context.Tickets.FindAsync(ticketId);
+        if (ticket == null) return false;
+
+        ticket.Status = status;
+        ticket.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+        return true;
     }
 
-    public Task<bool> ExistsAsync(int ticketId)
+    public async Task<bool> ExistsAsync(int ticketId)
     {
-        throw new NotImplementedException();
+        return await _context.Tickets.AnyAsync(t => t.Id == ticketId);
     }
 
-    public Task<bool> IsCreatedByUserAsync(int ticketId, int userId)
+    public async Task<bool> IsCreatedByUserAsync(int ticketId, int userId)
     {
-        throw new NotImplementedException();
+        return await _context.Tickets
+            .AnyAsync(t => t.Id == ticketId && t.CreatedByUserId == userId);
     }
 
-    public Task<bool> IsAssignedToUserAsync(int ticketId, int userId)
+    public async Task<bool> IsAssignedToUserAsync(int ticketId, int userId)
     {
-        throw new NotImplementedException();
+        return await _context.Tickets
+            .AnyAsync(t => t.Id == ticketId && t.AssignedToUserId == userId);
     }
 }
