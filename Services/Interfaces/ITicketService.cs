@@ -16,5 +16,5 @@ public interface ITicketService
 
     Task<bool> AssignAgentAsync(AssignTicketDto dto, int requestingUserId, Role userRole);
 
-    Task<bool> UpdateStatusAsync(UpdateTicketStatusDto dto, int userId, Role userRole);
+    Task<bool> UpdateStatusAsync(int ticketId, UpdateTicketStatusDto dto, int userId, Role userRole);
 }

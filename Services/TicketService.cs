@@ -64,9 +64,9 @@ public class TicketService(ITicketRepository ticketRepository) : ITicketService
         throw new NotImplementedException();
     }
 
-    public async Task<bool> UpdateStatusAsync(UpdateTicketStatusDto dto, int userId, Role userRole)
+    public async Task<bool> UpdateStatusAsync(int ticketId, UpdateTicketStatusDto dto, int userId, Role userRole)
     {
-        var ticket = await _ticketRepository.GetByIdAsync(dto.Id);
+        var ticket = await _ticketRepository.GetByIdAsync(ticketId);
         if (ticket == null) return false;
 
         if (userRole.Name != "Admin" &&
@@ -75,7 +75,7 @@ public class TicketService(ITicketRepository ticketRepository) : ITicketService
             return false;
         }
 
-        return await _ticketRepository.UpdateStatusAsync(dto.Id, dto.Status);
+        return await _ticketRepository.UpdateStatusAsync(ticketId, dto.Status);
     }
     
     private static TicketResponseDto MapToResponseDto(Ticket ticket)
