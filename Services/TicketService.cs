@@ -1,4 +1,5 @@
-﻿using TicketManager.DTOs.Ticket.Request;
+﻿using Microsoft.AspNetCore.Identity;
+using TicketManager.DTOs.Ticket.Request;
 using TicketManager.DTOs.Ticket.Response;
 using TicketManager.Models;
 using TicketManager.Repositories.Interfaces;
@@ -6,9 +7,11 @@ using TicketManager.Services.Interfaces;
 
 namespace TicketManager.Services;
 
-public class TicketService(ITicketRepository ticketRepository) : ITicketService
+public class TicketService(ITicketRepository ticketRepository, UserManager<User> userManager) : ITicketService
 {
     private readonly ITicketRepository _ticketRepository = ticketRepository;
+    private readonly UserManager<User> _userManager = userManager;
+    
     public async Task<TicketResponseDto> CreateAsync(CreateTicketDto dto, int createdByUserId)
     {
         var ticket = new Ticket
@@ -25,31 +28,42 @@ public class TicketService(ITicketRepository ticketRepository) : ITicketService
         return MapToResponseDto(createdTicket);
     }
 
-    public async Task<IEnumerable<TicketResponseDto>> GetAllAsync(int userId, Role userRole)
+    public async Task<IEnumerable<TicketResponseDto>> GetAllAsync(int userId)
     {
-        IEnumerable<Ticket> tickets = userRole.Name switch
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user == null) return [];
+
+        var roles = await _userManager.GetRolesAsync(user);
+
+        IEnumerable<Ticket> tickets= roles switch
         {
-            "Admin" => await _ticketRepository.GetAllAsync(),
-            "Agent" => await _ticketRepository.GetByAssignedUserIdAsync(userId),
-            "Customer" => await _ticketRepository.GetByUserIdAsync(userId),
-            _ => Enumerable.Empty<Ticket>()
+            _ when roles.Contains("Admin") => await _ticketRepository.GetAllAsync(), // Admin
+            _ when roles.Contains("Agent") => await _ticketRepository.GetByAssignedUserIdAsync(userId), // Agent
+            _ => await _ticketRepository.GetByUserIdAsync(userId), // Customer
         };
 
         return tickets.Select(MapToResponseDto);
     }
 
-    public async Task<TicketResponseDto?> GetByIdAsync(int ticketId, int userId, Role userRole)
+    public async Task<TicketResponseDto?> GetByIdAsync(int ticketId, int userId)
     {
         var ticket = await _ticketRepository.GetByIdAsync(ticketId);
         if (ticket == null) return null;
 
-        if (userRole.Name == "Admin"
-            || (userRole.Name == "Agent" && ticket.AssignedToUserId == userId)
-            || (userRole.Name == "Customer" && ticket.CreatedByUserId == userId))
-        {
-            return MapToResponseDto(ticket);
-        }
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user == null) return null;
 
+        var roles = await _userManager.GetRolesAsync(user);
+
+        bool isAdmin = roles.Contains("Admin");
+        bool isAgent = roles.Contains("Agent");
+        bool isCreator = ticket.CreatedByUserId == userId;
+        bool isAssigned = ticket.AssignedToUserId == userId;
+        
+        // admin can see everything - agent can only see the assigned tickets - customer can only view yours  
+        if (isAdmin || (isAgent && isAssigned) || isCreator)
+            return MapToResponseDto(ticket);
+        
         return null;
     }
 
@@ -59,22 +73,52 @@ public class TicketService(ITicketRepository ticketRepository) : ITicketService
         return tickets.Select(MapToResponseDto);
     }
 
-    public Task<bool> AssignAgentAsync(AssignTicketDto dto, int requestingUserId, Role userRole)
-    {
-        throw new NotImplementedException();
-    }
-
-    public async Task<bool> UpdateStatusAsync(int ticketId, UpdateTicketStatusDto dto, int userId, Role userRole)
+    public async Task<bool> AssignAgentAsync(int ticketId, int agentId, int requestingUserId)
     {
         var ticket = await _ticketRepository.GetByIdAsync(ticketId);
         if (ticket == null) return false;
 
-        if (userRole.Name != "Admin" &&
-            (userRole.Name != "Agent" || ticket.AssignedToUserId != userId))
+        if (ticket.Status == TicketStatus.Closed) return false;
+        
+        var user = await _userManager.FindByIdAsync(requestingUserId.ToString());
+        if (user == null) return false;
+
+        var role = await _userManager.GetRolesAsync(user);
+        bool isAdmin = role.Contains("Admin");
+        bool isAgent = role.Contains("Agent"); 
+        if (!isAdmin && !isAgent) return false;
+
+        if (isAgent && agentId != requestingUserId) return false;
+
+        if (agentId != requestingUserId)
         {
-            return false;
+            var targetUser = await _userManager.FindByIdAsync(agentId.ToString());
+            if (targetUser == null) return false;
+
+            bool targetIsAgent = await _userManager.IsInRoleAsync(targetUser, "Agent");
+            bool targetIsAdmin = await _userManager.IsInRoleAsync(targetUser, "Admin");
+
+            if (!targetIsAdmin && !targetIsAgent) return false;
         }
 
+        await _ticketRepository.AssignAgentAsync(ticketId, agentId);
+        return true;
+
+    }
+
+    public async Task<bool> UpdateStatusAsync(int ticketId, UpdateTicketStatusDto dto, int userId)
+    {
+        var ticket = await _ticketRepository.GetByIdAsync(ticketId);
+        if (ticket == null) return false;
+
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user == null) return false;
+
+        var roles = await _userManager.GetRolesAsync(user);
+        bool canUpdate = roles.Contains("Admin") ||
+                         (roles.Contains("Agent") && ticket.AssignedToUserId == userId);
+
+        if (!canUpdate) return false;
         return await _ticketRepository.UpdateStatusAsync(ticketId, dto.Status);
     }
     

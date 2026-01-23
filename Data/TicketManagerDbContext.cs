@@ -1,19 +1,25 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using TicketManager.Models;
 
 namespace TicketManager.Data;
 
-public class TicketManagerDbContext : DbContext
+public class TicketManagerDbContext : IdentityDbContext<User, Role, int>
 {
     public TicketManagerDbContext(DbContextOptions<TicketManagerDbContext> opt) : base(opt) { }
     
-    public DbSet<User> Users { get; set; }
+    /*public DbSet<User> Users { get; set; }
+    public DbSet<Role> Roles { get; set; }*/
+    
     public DbSet<Message> Messages { get; set; }
-    public DbSet<Role> Roles { get; set; }
     public DbSet<Ticket> Tickets { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.Entity<User>().ToTable("Users");
+        modelBuilder.Entity<Role>().ToTable("Roles");
+        
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -24,11 +30,6 @@ public class TicketManagerDbContext : DbContext
             entity.Property(e => e.Lastname)
                 .IsRequired()
                 .HasMaxLength(100);
-
-            entity.HasOne<Role>(e => e.Role)
-                .WithMany(r => r.Users)
-                .HasForeignKey(e => e.RoleId)
-                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<Role>(entity =>

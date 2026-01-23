@@ -66,26 +66,24 @@ public class TicketRepository(TicketManagerDbContext context) : ITicketRepositor
 
     public async Task<bool> AssignAgentAsync(int ticketId, int agentId)
     {
-        var ticket = await _context.Tickets.FindAsync(ticketId);
-        if (ticket == null) return false;
+        var rowsAffected = await _context.Tickets
+            .Where(t => t.Id == ticketId)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(t => t.AssignedToUserId, agentId)
+                .SetProperty(t => t.UpdatedAt, DateTime.UtcNow));
 
-        ticket.AssignedToUserId = agentId;
-        ticket.UpdatedAt = DateTime.UtcNow;
-
-        await _context.SaveChangesAsync();
-        return true;
+        return rowsAffected > 0;
     }
 
     public async Task<bool> UpdateStatusAsync(int ticketId, TicketStatus status)
     {
-        var ticket = await _context.Tickets.FindAsync(ticketId);
-        if (ticket == null) return false;
+        var rowsAffected = await context.Tickets
+            .Where(t => t.Id == ticketId)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(t => t.Status, status)
+                .SetProperty(t => t.UpdatedAt, DateTime.UtcNow));
 
-        ticket.Status = status;
-        ticket.UpdatedAt = DateTime.UtcNow;
-
-        await _context.SaveChangesAsync();
-        return true;
+        return rowsAffected > 0;
     }
 
     public async Task<bool> ExistsAsync(int ticketId)

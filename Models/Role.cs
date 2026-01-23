@@ -1,9 +1,8 @@
-﻿namespace TicketManager.Models;
+﻿using Microsoft.AspNetCore.Identity;
 
-public class Role
+namespace TicketManager.Models;
+
+public class Role : IdentityRole<int>
 {
-    public int Id { get; set; }
-    public string Name { get; set; } = null!;
-
     public ICollection<User> Users { get; set; } = new List<User>();
 }
