@@ -20,7 +20,7 @@ public class TicketController(ITicketService ticketService, UserManager<User> us
     [HttpPost]
     public async Task<ActionResult<TicketResponseDto>> Create([FromBody] CreateTicketDto dto)
     {
-        var userId = await GetCurrentUserIdAsync();
+        var userId = GetCurrentUserId();
         if (userId == 0) return Unauthorized();
 
         var ticket = await _ticketService.CreateAsync(dto, userId);
@@ -30,19 +30,21 @@ public class TicketController(ITicketService ticketService, UserManager<User> us
     [HttpGet]
     public async Task<ActionResult<IEnumerable<TicketResponseDto>>> GetAll()
     {
-        var userId = await GetCurrentUserIdAsync();
+        var userId = GetCurrentUserId();
+        var userRole = GetCurrentUserRole(); 
         if (userId == 0) return Unauthorized();
         
-        return Ok(await _ticketService.GetAllAsync(userId));
+        return Ok(await _ticketService.GetAllAsync(userId, userRole));
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<TicketResponseDto>> GetById(int id)
     {
-        var userId = await GetCurrentUserIdAsync();
+        var userId = GetCurrentUserId();
+        var userRole = GetCurrentUserRole();
         if (userId == 0) return Unauthorized();
         
-        var ticket = await _ticketService.GetByIdAsync(id, userId);
+        var ticket = await _ticketService.GetByIdAsync(id, userId, userRole);
         if (ticket == null)
             return NotFound(new { message = "Ticket not found or access denied" });
         
@@ -50,7 +52,7 @@ public class TicketController(ITicketService ticketService, UserManager<User> us
     }
 
     [HttpGet("unassigned")]
-    [Authorize(Roles = "Admin,Agent")]
+    [Authorize(Roles = "CUSTOMER")]
     public async Task<ActionResult<IEnumerable<TicketResponseDto>>> GetUnassigned()
     {
         var tickets = await _ticketService.GetUnassignedAsync();
@@ -58,22 +60,50 @@ public class TicketController(ITicketService ticketService, UserManager<User> us
     }
 
     [HttpPatch("{id}/status")]
-    public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateTicketStatusDto dto)
+    public async Task<IActionResult> UpdateStatus(int id, [FromQuery] TicketStatus status)
     {
-        var userId = await GetCurrentUserIdAsync();
+        var userId = GetCurrentUserId();
+        var userRole = GetCurrentUserRole();
+        
         if (userId == 0) return Unauthorized();
 
-        var result = await _ticketService.UpdateStatusAsync(id, dto, userId);
+        if (!Enum.IsDefined(typeof(TicketStatus), status))
+            return BadRequest(new { message = "Invalid status value" });
+
+        var result = await _ticketService.UpdateStatusAsync(id, status, userId, userRole);
         if (!result)
             return BadRequest(new { message = "Couldn't update the ticket (check permissions or id)" });
         
         return NoContent();
     }
     
-    private async Task<int> GetCurrentUserIdAsync()
+    [HttpPatch("{id}/assign")]
+    [Authorize(Roles = "Admin,Agent")]
+    public async Task<IActionResult> AssignTicket(int id, [FromQuery] int agentId)
     {
-        var user = await _userManager.GetUserAsync(User); // <-- claim in ControllBase actualUser requesting
-        return user?.Id ?? 0;
+        var userId = GetCurrentUserId();
+        var role = GetCurrentUserRole();
+
+        // If it doesn't send any agent ID or if it's 0, assign it to the same user who requested it
+        int targetAgentId = agentId > 0 ? agentId : userId;
+
+        var result = await ticketService.AssignAgentAsync(id, targetAgentId, userId, role);
+
+        if (!result)
+            return BadRequest(new { message = "Cannot assign ticket. Check permissions or agent validity." });
+
+        return NoContent();
     }
+    
+    private int GetCurrentUserId()
+    {
+        var idClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (idClaim != null && int.TryParse(idClaim.Value, out var userId))
+            return userId;
+
+        return 0;
+    }
+
+    private string GetCurrentUserRole() { return User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? string.Empty; }
     
 }

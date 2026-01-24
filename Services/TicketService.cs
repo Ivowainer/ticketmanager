@@ -28,35 +28,25 @@ public class TicketService(ITicketRepository ticketRepository, UserManager<User>
         return MapToResponseDto(createdTicket);
     }
 
-    public async Task<IEnumerable<TicketResponseDto>> GetAllAsync(int userId)
-    {
-        var user = await _userManager.FindByIdAsync(userId.ToString());
-        if (user == null) return [];
-
-        var roles = await _userManager.GetRolesAsync(user);
-
-        IEnumerable<Ticket> tickets= roles switch
+    public async Task<IEnumerable<TicketResponseDto>> GetAllAsync(int userId, string userRole)
+    {  
+        IEnumerable<Ticket> tickets = userRole switch
         {
-            _ when roles.Contains("Admin") => await _ticketRepository.GetAllAsync(), // Admin
-            _ when roles.Contains("Agent") => await _ticketRepository.GetByAssignedUserIdAsync(userId), // Agent
-            _ => await _ticketRepository.GetByUserIdAsync(userId), // Customer
+            "Admin" => await _ticketRepository.GetAllAsync(), // admin
+            "Agent" => await _ticketRepository.GetByAssignedUserIdAsync(userId), // agent
+            _       => await _ticketRepository.GetByUserIdAsync(userId) // ccustomer
         };
 
         return tickets.Select(MapToResponseDto);
     }
 
-    public async Task<TicketResponseDto?> GetByIdAsync(int ticketId, int userId)
+    public async Task<TicketResponseDto?> GetByIdAsync(int ticketId, int userId, string userRole)
     {
         var ticket = await _ticketRepository.GetByIdAsync(ticketId);
         if (ticket == null) return null;
 
-        var user = await _userManager.FindByIdAsync(userId.ToString());
-        if (user == null) return null;
-
-        var roles = await _userManager.GetRolesAsync(user);
-
-        bool isAdmin = roles.Contains("Admin");
-        bool isAgent = roles.Contains("Agent");
+        bool isAdmin = userRole == "Admin";
+        bool isAgent = userRole == "Agent";
         bool isCreator = ticket.CreatedByUserId == userId;
         bool isAssigned = ticket.AssignedToUserId == userId;
         
@@ -73,19 +63,15 @@ public class TicketService(ITicketRepository ticketRepository, UserManager<User>
         return tickets.Select(MapToResponseDto);
     }
 
-    public async Task<bool> AssignAgentAsync(int ticketId, int agentId, int requestingUserId)
+    public async Task<bool> AssignAgentAsync(int ticketId, int agentId, int requestingUserId, string requestingUserRole)
     {
         var ticket = await _ticketRepository.GetByIdAsync(ticketId);
         if (ticket == null) return false;
 
         if (ticket.Status == TicketStatus.Closed) return false;
-        
-        var user = await _userManager.FindByIdAsync(requestingUserId.ToString());
-        if (user == null) return false;
 
-        var role = await _userManager.GetRolesAsync(user);
-        bool isAdmin = role.Contains("Admin");
-        bool isAgent = role.Contains("Agent"); 
+        bool isAdmin = requestingUserRole == "Admin";
+        bool isAgent = requestingUserRole == "Agent"; 
         if (!isAdmin && !isAgent) return false;
 
         if (isAgent && agentId != requestingUserId) return false;
@@ -106,20 +92,16 @@ public class TicketService(ITicketRepository ticketRepository, UserManager<User>
 
     }
 
-    public async Task<bool> UpdateStatusAsync(int ticketId, UpdateTicketStatusDto dto, int userId)
+    public async Task<bool> UpdateStatusAsync(int ticketId, TicketStatus status, int userId, string userRole)
     {
         var ticket = await _ticketRepository.GetByIdAsync(ticketId);
         if (ticket == null) return false;
 
-        var user = await _userManager.FindByIdAsync(userId.ToString());
-        if (user == null) return false;
-
-        var roles = await _userManager.GetRolesAsync(user);
-        bool canUpdate = roles.Contains("Admin") ||
-                         (roles.Contains("Agent") && ticket.AssignedToUserId == userId);
+        bool canUpdate = userRole == "Admin" ||
+                         (userRole == "Agent" && ticket.AssignedToUserId == userId);
 
         if (!canUpdate) return false;
-        return await _ticketRepository.UpdateStatusAsync(ticketId, dto.Status);
+        return await _ticketRepository.UpdateStatusAsync(ticketId, status);
     }
     
     private static TicketResponseDto MapToResponseDto(Ticket ticket)

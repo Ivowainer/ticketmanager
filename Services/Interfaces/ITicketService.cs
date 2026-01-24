@@ -9,12 +9,12 @@ public interface ITicketService
 {
     Task<TicketResponseDto> CreateAsync(CreateTicketDto dto, int createdByUserId);
 
-    Task<IEnumerable<TicketResponseDto>> GetAllAsync(int userId);
+    Task<IEnumerable<TicketResponseDto>> GetAllAsync(int userId, string userRole);
 
-    Task<TicketResponseDto?> GetByIdAsync(int ticketId, int userId);
+    Task<TicketResponseDto?> GetByIdAsync(int ticketId, int userId, string userRole);
     Task<IEnumerable<TicketResponseDto>> GetUnassignedAsync();
 
-    Task<bool> AssignAgentAsync(int ticketId, int agentId, int requestingUserId);
+    Task<bool> AssignAgentAsync(int ticketId, int agentId, int requestingUserId, string requestingUserRole);
 
-    Task<bool> UpdateStatusAsync(int ticketId, UpdateTicketStatusDto dto, int userId);
+    Task<bool> UpdateStatusAsync(int ticketId, TicketStatus status, int userId, string userRole);
 }
