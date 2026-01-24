@@ -52,7 +52,7 @@ public class TicketController(ITicketService ticketService, UserManager<User> us
     }
 
     [HttpGet("unassigned")]
-    [Authorize(Roles = "CUSTOMER")]
+    [Authorize(Roles = "Admin,Agent")]
     public async Task<ActionResult<IEnumerable<TicketResponseDto>>> GetUnassigned()
     {
         var tickets = await _ticketService.GetUnassignedAsync();
