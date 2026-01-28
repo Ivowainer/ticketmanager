@@ -1,7 +1,9 @@
 ﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using TicketManager.DTOs.Message;
+using TicketManager.Hubs;
 using TicketManager.Services.Interfaces;
 
 namespace TicketManager.Controllers;
@@ -9,9 +11,10 @@ namespace TicketManager.Controllers;
 [ApiController]
 [Route("api/ticket/{ticketId}/message")]
 [Authorize]
-public class MessageController(IMessageService messageService) : ControllerBase
+public class MessageController(IMessageService messageService, IHubContext<TicketHub, ITicketClients> hubContext) : ControllerBase
 {
     private readonly IMessageService _messageService = messageService;
+    private readonly IHubContext<TicketHub, ITicketClients> _hubContext = hubContext;
     
     // INTERNAL FUNC.
     private int GetCurrentUserId()
@@ -46,7 +49,7 @@ public class MessageController(IMessageService messageService) : ControllerBase
         if (messageDto == null)
             return BadRequest(new { message = "The message couldn't be sent" });
 
-        // TODO: Notify SignalR
+        await hubContext.Clients.Group($"Ticket-{ticketId}").ReceiveMessage(messageDto);
 
         return CreatedAtAction(nameof(GetAll), new { ticketId }, messageDto);
     }

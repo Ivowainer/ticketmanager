@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
 using TicketManager.Data;
+using TicketManager.Hubs;
 using TicketManager.Models;
 using TicketManager.Repositories;
 using TicketManager.Repositories.Interfaces;
@@ -27,10 +28,14 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<ITicketRepository, TicketRepository>();
 builder.Services.AddScoped<ITicketService, TicketService>();
+builder.Services.AddScoped<IMessageService, MessageService>();
+builder.Services.AddScoped<IMessageRepository, MessageRepository>();
 
 builder.Services.AddTransient<IClaimsTransformation, RoleClaimsTransformation>();
 
 builder.Services.AddControllers();
+
+builder.Services.AddSignalR();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddEndpointsApiExplorer();
@@ -84,6 +89,8 @@ app.MapGroup("/api/auth").MapIdentityApi<User>();
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
+
+app.MapHub<TicketHub>("/ticketHub");
 
 /*using (var scope = app.Services.CreateScope())
 {
