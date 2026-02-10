@@ -75,17 +75,6 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
-app.MapGroup("/api/auth").MapIdentityApi<User>();
-
 var frontendUrl = builder.Configuration.GetValue<string>("FrontendUrl") 
                   ?? "http://localhost:5173";
 
@@ -98,6 +87,17 @@ builder.Services.AddCors(options =>
             .AllowAnyHeader()
             .AllowCredentials());
 });
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.MapGroup("/api/auth").MapIdentityApi<User>();
 
 app.UseHttpsRedirection();
 app.UseCors("AllowClientApp");
