@@ -86,7 +86,21 @@ if (app.Environment.IsDevelopment())
 
 app.MapGroup("/api/auth").MapIdentityApi<User>();
 
+var frontendUrl = builder.Configuration.GetValue<string>("FrontendUrl") 
+                  ?? "http://localhost:5173";
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowClientApp",
+        policy => policy
+            .WithOrigins(frontendUrl)
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials());
+});
+
 app.UseHttpsRedirection();
+app.UseCors("AllowClientApp");
 app.UseAuthorization();
 app.MapControllers();
 
